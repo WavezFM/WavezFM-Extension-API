@@ -132,7 +132,7 @@ type WavezRoomState = {
       xp: number | null;
       fanCount: number | null;
       infiniteLevel: boolean;
-      isFriend: boolean;
+      isSuperfan: boolean;
       isFollowing: boolean;
       position: number;
       queuedTrackDurationMs: number | null;
@@ -152,17 +152,17 @@ type WavezRoomState = {
     xp: number | null;
     fanCount: number | null;
     infiniteLevel: boolean;
-    isFriend: boolean;
+    isSuperfan: boolean;
     isFollowing: boolean;
   }>;
 
   social: {
-    friendIds: string[];
+    superfanIds: string[];
     followingIds: string[];
-    friendsCount: number;
+    superfansCount: number;
     followingCount: number;
     isFollowingCurrentDj: boolean;
-    isFriendWithCurrentDj: boolean;
+    isSuperfanWithCurrentDj: boolean;
   };
 
   progress: {
@@ -391,7 +391,7 @@ Automatically votes once per track:
 * Use `requestId` only for client-side logging and debugging; it is not a server-side identifier.
 * `votes_changed` includes `wootUserIds`, `mehUserIds`, and `grabUserIds` for per-user reaction state.
 * `queue_changed` includes detailed queue entries, ETA data, and social/progression metadata.
-* `social_changed` exposes friendship and following relationships resolved for the current room session.
+* `social_changed` exposes superfan and following relationships resolved for the current room session.
 * `progress_changed` exposes XP, level, and fan data for the current user and visible room users.
 * Treat `version: "1"` as the compatibility key; future bridge versions may add more actions without changing the meaning of v1.
 
