@@ -87,6 +87,7 @@ type WavezRoomState = {
     clientVote: 'woot' | 'meh' | null;
     clientGrabbed: boolean;
     clientGrabPlaylistId: string | null;
+    clientVotePending?: boolean; // Optimistic vote awaiting server confirmation
     canVote: boolean;
   };
   queue: {
@@ -285,124 +286,62 @@ The value is clamped to `0-100`.
 
 ## Official AutoWoot Example
 
-This example votes once per new playback item, without reading or clicking the DOM.
+This example watches the current playback without reading or clicking the DOM. It retries after a failed vote or reconnect, waits for pending votes, and respects a manual meh. `ok`/`requestId` mean dispatch, not server confirmation. Call `window.stopWavezAutoWoot()` to disable it.
 
 ```js
 void (async () => {
   const startedAt = Date.now();
   let api = window.WavezFM;
-
   while (api?.version !== '1' && Date.now() - startedAt < 10_000) {
     await new Promise((resolve) => window.setTimeout(resolve, 50));
     api = window.WavezFM;
   }
+  if (!api || api.version !== '1') return;
 
-  if (!api || api.version !== '1') {
-    console.warn('WavezFM bridge unavailable');
-    return;
-  }
-
-  const RETRY_DELAY_MS = 500;
-  const MAX_RETRY_ATTEMPTS = 10;
-  let handledPlaybackKey = null;
-  let retryTimeoutId = null;
-  let retryPlaybackKey = null;
-  let retryAttempts = 0;
-
-  const clearRetry = () => {
-    if (retryTimeoutId !== null) {
-      window.clearTimeout(retryTimeoutId);
-      retryTimeoutId = null;
+  // Running the snippet again replaces the previous instance.
+  window.stopWavezAutoWoot?.();
+  let timer = null;
+  let stopped = false;
+  let playbackKey = null;
+  let nextAttemptAt = 0;
+  let retryDelay = 1000;
+  let checking = false;
+  const check = () => {
+    if (stopped || checking) return;
+    checking = true;
+    try {
+      const state = api.room.getState();
+      const playback = state?.playback;
+      if (!playback) return;
+      if (playbackKey !== playback.playbackKey) {
+        playbackKey = playback.playbackKey;
+        nextAttemptAt = 0;
+        retryDelay = 1000;
+      }
+      if (state.queue.isCurrentDj || state.votes.clientVote === 'meh') return;
+      // A local optimistic vote is not server confirmation. Keep watching for
+      // rollback/reconnect even after a successful dispatch or visible woot.
+      if (state.votes.clientVotePending || state.votes.clientVote === 'woot') return;
+      if (state.votes.trackId !== playback.trackId || !state.votes.canVote) return;
+      if (Date.now() < nextAttemptAt) return;
+      nextAttemptAt = Date.now() + retryDelay;
+      retryDelay = Math.min(retryDelay * 2, 15_000);
+      api.actions.vote('woot');
+    } finally {
+      checking = false;
+      if (timer !== null) window.clearTimeout(timer);
+      // Local bridge inspection only: no HTTP request and no vote while pending.
+      if (!stopped) timer = window.setTimeout(check, 1000);
     }
   };
-
-  const scheduleRetry = (playbackKey) => {
-    if (retryPlaybackKey !== playbackKey) {
-      clearRetry();
-      retryPlaybackKey = playbackKey;
-      retryAttempts = 0;
-    }
-
-    if (retryTimeoutId !== null || retryAttempts >= MAX_RETRY_ATTEMPTS) {
-      return;
-    }
-
-    retryAttempts += 1;
-    retryTimeoutId = window.setTimeout(() => {
-      retryTimeoutId = null;
-      voteForCurrentTrack();
-    }, RETRY_DELAY_MS);
+  const unsubscribers = ['playback_changed', 'votes_changed', 'room_changed']
+    .map((event) => api.room.subscribe(event, check));
+  window.stopWavezAutoWoot = () => {
+    stopped = true;
+    if (timer !== null) window.clearTimeout(timer);
+    unsubscribers.forEach((unsubscribe) => unsubscribe());
   };
-
-  const voteForCurrentTrack = () => {
-    const state = api.room.getState();
-    const playback = state?.playback;
-
-    if (!state || !playback || playback.playbackKey === handledPlaybackKey) {
-      return;
-    }
-
-    if (state.queue.isCurrentDj) {
-      handledPlaybackKey = playback.playbackKey;
-      clearRetry();
-      return;
-    }
-
-    if (state.votes.trackId !== playback.trackId) {
-      scheduleRetry(playback.playbackKey);
-      return;
-    }
-
-    if (state.votes.clientVote === 'woot') {
-      handledPlaybackKey = playback.playbackKey;
-      clearRetry();
-      return;
-    }
-
-    if (!state.votes.canVote) {
-      scheduleRetry(playback.playbackKey);
-      return;
-    }
-
-    const result = api.actions.vote('woot');
-
-    if (result.ok && result.requestId) {
-      handledPlaybackKey = playback.playbackKey;
-      clearRetry();
-      return;
-    }
-
-    console.warn('AutoWoot was not dispatched:', result.code);
-    if (
-      result.code === 'unavailable' ||
-      result.code === 'missing_playback' ||
-      result.code === 'rejected'
-    ) {
-      scheduleRetry(playback.playbackKey);
-    } else {
-      clearRetry();
-    }
-  };
-
-  voteForCurrentTrack();
-
-  const unsubscribePlayback = api.room.subscribe(
-    'playback_changed',
-    voteForCurrentTrack,
-  );
-  const unsubscribeVotes = api.room.subscribe(
-    'votes_changed',
-    voteForCurrentTrack,
-  );
-
-  const stopAutoWoot = () => {
-    clearRetry();
-    unsubscribePlayback();
-    unsubscribeVotes();
-  };
-
-  // Call stopAutoWoot() when the integration is disabled.
-  void stopAutoWoot;
+  check();
 })();
 ```
 
