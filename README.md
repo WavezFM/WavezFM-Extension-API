@@ -44,6 +44,7 @@ type WavezRoomState = {
     name: string;
     description: string;
     isVerified: boolean;
+    isPartner: boolean;
     viewerRole: string;
     queueLocked: boolean;
     activeUsersCount: number;
@@ -174,6 +175,8 @@ type WavezRoomState = {
 };
 ```
 
+`currentUser.globalRole` is the platform role; `currentUser.roomRole` and `room.viewerRole` describe access in the current room. VIP is a room role below Resident DJ, not a global role. Use the bridge's permission flags and action results rather than treating a cosmetic badge as authorization.
+
 ## Events
 
 Subscribe with `window.WavezFM.room.subscribe(eventName, handler)`.
@@ -270,6 +273,8 @@ Possible non-success codes:
 ```js
 window.WavezFM.actions.sendChat('hello room');
 ```
+
+An `ok` result means the client accepted the dispatch. It does not confirm server persistence or publication. Messages still follow the current room's media permissions, link filters, and moderation policy. A link awaiting approval is not a public chat message yet; do not retry it merely because no `chat_message` event arrived. The bridge does not expose link-review decisions or the pending-review WebSocket ACK. Authorized moderators use the authenticated HTTP review endpoints described in the frontend API documentation.
 
 Possible non-success codes:
 
