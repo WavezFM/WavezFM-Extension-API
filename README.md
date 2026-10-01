@@ -218,18 +218,7 @@ Extensions that prefer raw `CustomEvent` listeners can also listen to:
 
 All official extension actions live under `window.WavezFM.actions`.
 
-### Vote
-
-```js
-const result = window.WavezFM.actions.vote('woot');
-```
-
-Supported vote types:
-
-- `'woot'`
-- `'meh'`
-
-Result shape:
+All actions return the same result shape synchronously. `requestId` is optional; an `ok` result does not confirm server acceptance or persistence.
 
 ```ts
 type WavezActionResult = {
@@ -240,10 +229,28 @@ type WavezActionResult = {
     | 'missing_room'
     | 'missing_playback'
     | 'self_vote_not_allowed'
-    | 'rejected';
+    | 'invalid_content'
+    | 'rejected'
+    | 'queue_locked'
+    | 'queue_full'
+    | 'already_in_queue'
+    | 'not_in_queue'
+    | 'current_dj';
   requestId?: string | null;
+  value?: number; // Normalized volume returned by setVolume
 };
 ```
+
+### Vote
+
+```js
+const result = window.WavezFM.actions.vote('woot');
+```
+
+Supported vote types:
+
+- `'woot'`
+- `'meh'`
 
 ### Join queue
 
@@ -287,7 +294,7 @@ Possible non-success codes:
 window.WavezFM.actions.setVolume(25);
 ```
 
-The value is clamped to `0-100`.
+The value is rounded to the nearest integer and clamped to `0-100`. A successful result includes the normalized volume in `result.value`.
 
 ## Official AutoWoot Example
 
