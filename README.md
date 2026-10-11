@@ -177,6 +177,22 @@ type WavezRoomState = {
 
 `currentUser.globalRole` is the platform role; `currentUser.roomRole` and `room.viewerRole` describe access in the current room. VIP is a room role below Resident DJ, not a global role. Use the bridge's permission flags and action results rather than treating a cosmetic badge as authorization.
 
+The server gives platform Admin and Developer at least Host-level authorization,
+and Ambassador at least Manager-level authorization, preserving higher assigned
+room roles. This does not grant room ownership or replace assigned badges.
+Verified, Subscriber and cosmetic/custom role labels do not imply those staff
+permissions. The bridge retains its existing role fields; it does not expose a
+bot token or derive permission grants from a displayed role name.
+
+`/bot @botname command` in the website sends a private inline command; `/bot`
+and `/bot @botname` open the multiline dialog. There is no dedicated
+private-command bridge method. `actions.sendChat(content)` delegates to the
+current website composer handler, including slash-command routing; its `ok`
+result only confirms client dispatch, not bot processing. Bot integrations
+receive authenticated Bot API private-command events. Ephemeral notices are
+live-only and may target
+selected users or the whole room, and their Dismiss action is local to a viewer.
+
 ## Events
 
 Subscribe with `window.WavezFM.room.subscribe(eventName, handler)`.
