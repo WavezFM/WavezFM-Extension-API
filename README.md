@@ -384,3 +384,12 @@ void (async () => {
 - Always handle `ok: false` results
 - `requestId` is client-side only and is useful for logging/debugging
 - Future bridge versions may add more actions, but `version: "1"` should be treated as the compatibility key
+
+
+## Bot identities and shared emoji libraries
+
+The `window.WavezFM` bridge remains a user-side room integration, not a server bot credential manager. No bridge version or authentication change is required for shared bot emoji libraries. Keep bot tokens in your server process, never in a userscript or extension's injected page code.
+
+The server Bot API and `@wavezfm/api` SDK now support a shared emoji library owned by the bot creator's account. Every bot owned by that account can send its `:shortcode:` emojis across rooms, with limits based on the owner's active subscription/eligible perks. Manage the library in **Room tools → Bots → My bot emojis** or through the authenticated user's SDK helpers. See the [canonical shared emoji documentation](https://docs.wavez.fm/docs/room-bots/emoji-library) for read-only bot catalog access, owner-only writes, quotas and examples.
+
+Bot management endpoints accept the bot's persistent numeric ID (a decimal string), token UUID or `room-bot:<UUID>` identity. This does **not** change the IDs accepted by the browser bridge: continue using the user/room identifiers returned by its room state and events. Numeric bot IDs are not credentials. Emoji IDs remain UUIDs; Discord's `<:name:numericId>` syntax is not supported.
