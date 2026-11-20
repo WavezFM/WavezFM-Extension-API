@@ -217,6 +217,8 @@ unsubscribe();
 - `social_changed`
 - `progress_changed`
 
+`chat_message` carries `id`, `roomId`, `userId`, `username`, `content`, `timestamp`, `role`, `platformRole`, `system`, and for replies `replyToId` (the replied message id) plus `replyToUserId` and `replyToUsername` (its author). They are `null` when the message is not a reply. The bridge has no message lookup by id.
+
 ### Raw DOM events
 
 Extensions that prefer raw `CustomEvent` listeners can also listen to:
