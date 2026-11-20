@@ -217,7 +217,7 @@ unsubscribe();
 - `social_changed`
 - `progress_changed`
 
-`chat_message` carries `id`, `roomId`, `userId`, `username`, `content`, `timestamp`, `role`, `platformRole`, `system`, and for replies `replyToId` (the replied message id) plus `replyToUserId` and `replyToUsername` (its author). They are `null` when the message is not a reply. The bridge has no message lookup by id.
+`chat_message` carries `id`, `roomId`, `userId`, `username`, `content`, `timestamp`, `role`, `platformRole`, `system`, and for replies `replyToId` (the replied message id) plus `replyToUserId` and `replyToUsername` (its author). They are `null` when the message is not a reply. The bridge has no message lookup by id. `username` and `replyToUsername` are display names, not account handles; use `userId`/`replyToUserId` to identify people. For a handle, match the id against `room.getState().users`, whose entries carry `rawUsername` while that user is in the room.
 
 ### Raw DOM events
 
