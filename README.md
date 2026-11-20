@@ -186,9 +186,12 @@ bot token or derive permission grants from a displayed role name.
 
 `/bot @botname command` in the website sends a private inline command; `/bot`
 and `/bot @botname` open the multiline dialog. There is no dedicated
-private-command bridge method. `actions.sendChat(content)` delegates to the
+private-command bridge method. `actions.sendChat(content, options?)` delegates to the
 current website composer handler, including slash-command routing; its `ok`
-result only confirms client dispatch, not bot processing. Bot integrations
+result only confirms client dispatch, not bot processing. `options.mentionUserIds`
+lists who each `@name` in `content` refers to (account or `room-bot:` IDs, up to
+20), so a mention reaches one exact identity when several share a name; the
+server keeps an ID only when that identity's name is written as a mention. Bot integrations
 receive authenticated Bot API private-command events. Ephemeral notices are
 live-only and may target
 selected users or the whole room, and their Dismiss action is local to a viewer.
@@ -297,6 +300,7 @@ Possible non-success codes:
 
 ```js
 window.WavezFM.actions.sendChat('hello room');
+window.WavezFM.actions.sendChat('@Tastybot hi', { mentionUserIds: ['user-id'] });
 ```
 
 An `ok` result means the client accepted the dispatch. It does not confirm server persistence or publication. Messages still follow the current room's media permissions, link filters, and moderation policy. A link awaiting approval is not a public chat message yet; do not retry it merely because no `chat_message` event arrived. The bridge does not expose link-review decisions or the pending-review WebSocket ACK. Authorized moderators use the authenticated HTTP review endpoints described in the frontend API documentation.
